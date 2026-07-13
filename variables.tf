@@ -254,66 +254,126 @@ EOT
     ])
     error_message = "Each required_workflow list must contain at least 1 items"
   }
-  # --- Unconfirmed validation candidates, derived from github_organization_ruleset's provider source ---
-  # Not auto-enabled: either a bespoke provider validator we can't safely translate,
-  # or a path that crosses a list-typed block (needs its own for_each wrapping).
-  # Review, translate into a real validation{} block above, and delete once confirmed.
-  # path: name
-  #   condition: length(value) >= 1 && length(value) <= 100
-  #   message:   must be between 1 and 100 characters
-  # path: target
-  #   source:    validation.StringInSlice value list is not a literal []string - likely a generated PossibleValuesFor*() helper; resolve separately
-  # path: enforcement
-  #   condition: contains(["disabled", "active", "evaluate"], value)
-  #   message:   must be one of: disabled, active, evaluate
-  # path: bypass_actors.actor_type
-  #   condition: contains(["Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey", "EnterpriseOwner"], value)
-  #   message:   must be one of: Integration, OrganizationAdmin, RepositoryRole, Team, DeployKey, EnterpriseOwner
-  # path: bypass_actors.bypass_mode
-  #   condition: contains(["always", "pull_request", "exempt"], value)
-  #   message:   must be one of: always, pull_request, exempt
-  # path: conditions.repository_property.include.source
-  #   condition: contains(["custom", "system"], value)
-  #   message:   must be one of: custom, system
-  # path: conditions.repository_property.exclude.source
-  #   condition: contains(["custom", "system"], value)
-  #   message:   must be one of: custom, system
-  # path: rules.pull_request.allowed_merge_methods[*]
-  #   condition: contains(["merge", "squash", "rebase"], value)
-  #   message:   must be one of: merge, squash, rebase
-  # path: rules.pull_request.required_approving_review_count
-  #   condition: value >= 0 && value <= 10
-  #   message:   must be between 0 and 10
-  # path: rules.pull_request.required_reviewers.reviewer.type
-  #   condition: contains(["Team"], value)
-  #   message:   must be one of: Team
-  # path: rules.required_status_checks.required_check.context
-  #   condition: length(value) > 0
-  #   message:   must not be empty
-  # path: rules.commit_message_pattern.operator
-  #   source:    operatorValidation (unresolved: func operatorValidation not found in /home/dan/code/public/terraform-provider-github/github)
-  # path: rules.commit_author_email_pattern.operator
-  #   source:    operatorValidation (unresolved: func operatorValidation not found in /home/dan/code/public/terraform-provider-github/github)
-  # path: rules.committer_email_pattern.operator
-  #   source:    operatorValidation (unresolved: func operatorValidation not found in /home/dan/code/public/terraform-provider-github/github)
-  # path: rules.branch_name_pattern.operator
-  #   source:    operatorValidation (unresolved: func operatorValidation not found in /home/dan/code/public/terraform-provider-github/github)
-  # path: rules.tag_name_pattern.operator
-  #   source:    operatorValidation (unresolved: func operatorValidation not found in /home/dan/code/public/terraform-provider-github/github)
-  # path: rules.required_workflows.required_workflow.path
-  #   condition: can(regex("^\\.github\\/workflows\\/.*$", value))
-  #   message:   Path must be in the .github/workflows directory
-  # path: rules.required_code_scanning.required_code_scanning_tool.alerts_threshold
-  #   condition: contains(["none", "errors", "errors_and_warnings", "all"], value)
-  #   message:   must be one of: none, errors, errors_and_warnings, all
-  # path: rules.required_code_scanning.required_code_scanning_tool.security_alerts_threshold
-  #   condition: contains(["none", "critical", "high_or_higher", "medium_or_higher", "all"], value)
-  #   message:   must be one of: none, critical, high_or_higher, medium_or_higher, all
-  # path: rules.max_file_size.max_file_size
-  #   condition: value >= 1 && value <= 100
-  #   message:   must be between 1 and 100
-  # path: rules.max_file_path_length.max_file_path_length
-  #   condition: value >= 1 && value <= 32767
-  #   message:   must be between 1 and 32767
+  validation {
+    condition = alltrue([
+      for k, v in var.organization_rulesets : (
+        length(v.name) >= 1 && length(v.name) <= 100
+      )
+    ])
+    error_message = "must be between 1 and 100 characters"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.organization_rulesets : (
+        contains(["disabled", "active", "evaluate"], v.enforcement)
+      )
+    ])
+    error_message = "must be one of: disabled, active, evaluate"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.organization_rulesets : (
+        v.bypass_actors == null || alltrue([for item in v.bypass_actors : (contains(["Integration", "OrganizationAdmin", "RepositoryRole", "Team", "DeployKey", "EnterpriseOwner"], item.actor_type))])
+      )
+    ])
+    error_message = "must be one of: Integration, OrganizationAdmin, RepositoryRole, Team, DeployKey, EnterpriseOwner"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.organization_rulesets : (
+        v.bypass_actors == null || alltrue([for item in v.bypass_actors : (contains(["always", "pull_request", "exempt"], item.bypass_mode))])
+      )
+    ])
+    error_message = "must be one of: always, pull_request, exempt"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.organization_rulesets : (
+        v.conditions == null || (v.conditions.repository_property == null || (v.conditions.repository_property.include == null || alltrue([for item in v.conditions.repository_property.include : (item.source == null || (contains(["custom", "system"], item.source)))])))
+      )
+    ])
+    error_message = "must be one of: custom, system"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.organization_rulesets : (
+        v.conditions == null || (v.conditions.repository_property == null || (v.conditions.repository_property.exclude == null || alltrue([for item in v.conditions.repository_property.exclude : (item.source == null || (contains(["custom", "system"], item.source)))])))
+      )
+    ])
+    error_message = "must be one of: custom, system"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.organization_rulesets : (
+        v.rules.pull_request == null || (v.rules.pull_request.allowed_merge_methods == null || (alltrue([for x in v.rules.pull_request.allowed_merge_methods : contains(["merge", "squash", "rebase"], x)])))
+      )
+    ])
+    error_message = "must be one of: merge, squash, rebase"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.organization_rulesets : (
+        v.rules.pull_request == null || (v.rules.pull_request.required_approving_review_count == null || (v.rules.pull_request.required_approving_review_count >= 0 && v.rules.pull_request.required_approving_review_count <= 10))
+      )
+    ])
+    error_message = "must be between 0 and 10"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.organization_rulesets : (
+        v.rules.pull_request == null || (v.rules.pull_request.required_reviewers == null || alltrue([for item in v.rules.pull_request.required_reviewers : (contains(["Team"], item.reviewer.type))]))
+      )
+    ])
+    error_message = "must be one of: Team"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.organization_rulesets : (
+        v.rules.required_status_checks == null || (alltrue([for item in v.rules.required_status_checks.required_check : (length(item.context) > 0)]))
+      )
+    ])
+    error_message = "must not be empty"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.organization_rulesets : (
+        v.rules.required_workflows == null || (alltrue([for item in v.rules.required_workflows.required_workflow : (can(regex("^\\.github\\/workflows\\/.*$", item.path)))]))
+      )
+    ])
+    error_message = "Path must be in the .github/workflows directory"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.organization_rulesets : (
+        v.rules.required_code_scanning == null || (alltrue([for item in v.rules.required_code_scanning.required_code_scanning_tool : (contains(["none", "errors", "errors_and_warnings", "all"], item.alerts_threshold))]))
+      )
+    ])
+    error_message = "must be one of: none, errors, errors_and_warnings, all"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.organization_rulesets : (
+        v.rules.required_code_scanning == null || (alltrue([for item in v.rules.required_code_scanning.required_code_scanning_tool : (contains(["none", "critical", "high_or_higher", "medium_or_higher", "all"], item.security_alerts_threshold))]))
+      )
+    ])
+    error_message = "must be one of: none, critical, high_or_higher, medium_or_higher, all"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.organization_rulesets : (
+        v.rules.max_file_size == null || (v.rules.max_file_size.max_file_size >= 1 && v.rules.max_file_size.max_file_size <= 100)
+      )
+    ])
+    error_message = "must be between 1 and 100"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.organization_rulesets : (
+        v.rules.max_file_path_length == null || (v.rules.max_file_path_length.max_file_path_length >= 1 && v.rules.max_file_path_length.max_file_path_length <= 32767)
+      )
+    ])
+    error_message = "must be between 1 and 32767"
+  }
+  # Note: 6 additional provider-side validators are enforced at apply time but not mirrored as validation{} blocks here (bespoke or non-mechanically-translatable).
 }
 
