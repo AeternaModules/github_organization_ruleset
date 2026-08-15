@@ -8,7 +8,7 @@ output "organization_rulesets_bypass_actors" {
 }
 output "organization_rulesets_conditions" {
   description = "Map of conditions values across all organization_rulesets, keyed the same as var.organization_rulesets"
-  value       = { for k, v in github_organization_ruleset.organization_rulesets : k => v.conditions if v.conditions != null && length(v.conditions) > 0 }
+  value       = { for k, v in github_organization_ruleset.organization_rulesets : k => one(v.conditions) if v.conditions != null && length(v.conditions) > 0 }
 }
 output "organization_rulesets_enforcement" {
   description = "Map of enforcement values across all organization_rulesets, keyed the same as var.organization_rulesets"
@@ -28,7 +28,7 @@ output "organization_rulesets_node_id" {
 }
 output "organization_rulesets_rules" {
   description = "Map of rules values across all organization_rulesets, keyed the same as var.organization_rulesets"
-  value       = { for k, v in github_organization_ruleset.organization_rulesets : k => v.rules if v.rules != null && length(v.rules) > 0 }
+  value       = { for k, v in github_organization_ruleset.organization_rulesets : k => one(v.rules) if v.rules != null && length(v.rules) > 0 }
 }
 output "organization_rulesets_ruleset_id" {
   description = "Map of ruleset_id values across all organization_rulesets, keyed the same as var.organization_rulesets"
